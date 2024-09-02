@@ -1,0 +1,92 @@
+_schema-version: "3.2"
+ID: createreq
+version: 0.0.1
+modules:
+- name: createreq-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: createreq-destination-service
+    parameters:
+      content-target: true
+  - name: createreq_html_repo_host
+    parameters:
+      service-key:
+        name: createreq_html_repo_host-key
+  - name: uaa_createreq
+    parameters:
+      service-key:
+        name: uaa_createreq-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: CreateRequestAutomation_createreq_html_repo_host
+          ServiceInstanceName: createreq-html5-app-host-service
+          ServiceKeyName: createreq_html_repo_host-key
+          sap.cloud.service: CreateRequestAutomation
+        - Authentication: OAuth2UserTokenExchange
+          Name: CreateRequestAutomation_uaa_createreq
+          ServiceInstanceName: createreq-xsuaa-service
+          ServiceKeyName: uaa_createreq-key
+          sap.cloud.service: CreateRequestAutomation
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: createreq-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: createreq_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - ukcobrakesautomationcreaterequi.zip
+      name: ukcobrakesautomationcreaterequi
+      target-path: resources/
+- name: ukcobrakesautomationcreaterequi
+  type: html5
+  path: createrequi
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: createreq-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: createreq-destination-service
+    service-plan: lite
+- name: createreq_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: createreq-html5-app-host-service
+    service-plan: app-host
+- name: uaa_createreq
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: createreq-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
